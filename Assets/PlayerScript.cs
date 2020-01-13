@@ -35,6 +35,7 @@ public class PlayerScript : MonoBehaviour
     private bool a_clicked = false;
     private bool s_clicked = false;
     private bool d_clicked = false;
+    private bool moving_club = false;
     private Rigidbody ball_rb;
 
     public enum PLAY_STATE
@@ -50,7 +51,7 @@ public class PlayerScript : MonoBehaviour
         ball_rb = BALL.GetComponent<Rigidbody>();
         PLANE.transform.localScale = new Vector3( 5* POINTER_LENGTH, 1, POINTER_LENGTH );
         PLANE.transform.localPosition = new Vector3(PLANE.transform.localScale.x * 5, BALL.transform.localScale.y / -2.1f, 0);
-        play_state = PLAY_STATE.waiting_for_player;
+        _next_turn();
     }
 
     // Update is called once per frame
@@ -77,6 +78,7 @@ public class PlayerScript : MonoBehaviour
                     float thrust = last_strength * 30;
                     ball_rb.AddForce( ROTATOR.transform.right * thrust );
                     play_state = PLAY_STATE.ball_rolling;
+                    moving_club = true;
                 }
                 break;
             case PLAY_STATE.ball_rolling:
@@ -84,6 +86,16 @@ public class PlayerScript : MonoBehaviour
                 {
                     GOLF_CLUB.transform.Rotate(0, -1 * last_strength * Time.deltaTime / HIT_TIMER, 0);
                     timer = timer - Time.deltaTime;
+                }
+                else if (timer > -4 * HIT_TIMER)
+                {
+                    timer = timer - Time.deltaTime;
+                }
+                else if (moving_club)
+                {
+                    moving_club = false;
+                    GOLF_CLUB.transform.Rotate(0, last_strength, 0);
+                    ROTATOR.SetActive(false);
                 }
                 else if (ball_rb.velocity.magnitude < BALL_STOPPING_SPEED )
                 {
@@ -96,6 +108,7 @@ public class PlayerScript : MonoBehaviour
 
     private void _next_turn()
     {
+        ROTATOR.SetActive(true);
         PLAYER.transform.position = BALL.transform.position;
         play_state = PLAY_STATE.waiting_for_player;
     }
