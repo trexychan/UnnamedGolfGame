@@ -12,6 +12,8 @@ public class PlayerScript : MonoBehaviour
     public GameObject BALL;
     public GameObject POINTER;
     public GameObject PLANE;
+    public GameObject start;
+    public GameObject goal;
 
     public float POINTER_LENGTH = 2.5e-03f;
     public float HIT_TIMER = .05f;
@@ -109,6 +111,7 @@ public class PlayerScript : MonoBehaviour
     private void _next_turn()
     {
         ROTATOR.SetActive(true);
+        last_strength = 0;
         PLAYER.transform.position = BALL.transform.position;
         play_state = PLAY_STATE.waiting_for_player;
     }
