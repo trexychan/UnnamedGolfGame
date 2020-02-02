@@ -27,8 +27,8 @@ Transform:
   m_LocalPosition: {x: 2.94, y: 0.09, z: -4.695}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
-  - {fileID: 995372542986210938}
   - {fileID: 995372543076416160}
+  - {fileID: 995372542986210938}
   - {fileID: 995372543377277552}
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -144,7 +144,7 @@ Transform:
   m_LocalScale: {x: 0.15, y: 0.15, z: 0.15}
   m_Children: []
   m_Father: {fileID: 995372541506723577}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &995372542986210919
 MeshFilter:
@@ -248,11 +248,11 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 995372543076416167}
   m_LocalRotation: {x: 0.057983153, y: 0.3677392, z: -0.022981111, w: 0.927835}
-  m_LocalPosition: {x: -2.44, y: 2.38, z: -4.63}
+  m_LocalPosition: {x: -2.44, y: 2.38, z: -4.6300006}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 995372541506723577}
-  m_RootOrder: 1
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 7.1520004, y: 43.241, z: 0}
 --- !u!20 &995372543076416161
 Camera:
@@ -500,6 +500,7 @@ MonoBehaviour:
   PLANE: {fileID: 995372543189985577}
   start: {fileID: 0}
   goal: {fileID: 0}
+  MAX_STRENGTH: 40
   POINTER_LENGTH: 0.0025
   HIT_TIMER: 0.05
   BALL_STOPPING_SPEED: 0.5
