@@ -2,20 +2,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Mirror;
+using Random = UnityEngine.Random;
 
-public class PlayerScript : MonoBehaviour
+public class PlayerScript : NetworkBehaviour
 {
     public GameObject CAMERA_OBJ;
     public GameObject ROTATOR;
-    public GameObject PLAYER;
     public GameObject GOLF_CLUB;
     public GameObject BALL;
     public GameObject POINTER;
-    public GameObject PLANE;
     public GameObject start;
     public GameObject goal;
+    public Color BALL_COLOR;
 
-    public int THRUST_MULTIPLIER = 100;
+    public int THRUST_MULTIPLIER = 3;
     public float MAX_STRENGTH = 40;
     public float POINTER_LENGTH = 2.5e-03f;
     public float HIT_TIMER = .05f;
@@ -53,17 +54,28 @@ public class PlayerScript : MonoBehaviour
     }
 
     // Start is called before the first frame update
-    void Start()
+    public override void OnStartAuthority()
     {
         ball_rb = BALL.GetComponent<Rigidbody>();
-        PLANE.transform.localScale = new Vector3( 5* POINTER_LENGTH, 1, POINTER_LENGTH );
-        PLANE.transform.localPosition = new Vector3(PLANE.transform.localScale.x * 5, BALL.transform.localScale.y / -2.1f, 0);
+        BALL.GetComponent<MeshRenderer>().material.color = new Color(
+            Random.Range(0f, 1f),
+            Random.Range(0f, 1f),
+            Random.Range(0f, 1f)
+        );
+        POINTER.transform.localScale = new Vector3( 5* POINTER_LENGTH, 1, POINTER_LENGTH );
+        POINTER.transform.localPosition = new Vector3(POINTER.transform.localScale.x * 5, BALL.transform.localScale.y / -2.1f, 0);
         _next_turn();
     }
 
     // Update is called once per frame
+    [Client]
     void Update()
     {
+        if (!base.hasAuthority)
+        {
+            print("HERE");
+            return;
+        }
         switch (play_state)
         {
             case PLAY_STATE.waiting_for_player:
@@ -136,7 +148,7 @@ public class PlayerScript : MonoBehaviour
     {
         ROTATOR.SetActive(true);
         last_strength = 0;
-        PLAYER.transform.position = BALL.transform.position;
+        ROTATOR.transform.position = BALL.transform.position;
         play_state = PLAY_STATE.waiting_for_player;
     }
 
@@ -194,8 +206,8 @@ public class PlayerScript : MonoBehaviour
         else if (left_mouse_clicked)
         {
             float strength = Math.Min(Math.Abs(Input.mousePosition.y - left_mouse_y) / 15, MAX_STRENGTH);
-            PLANE.transform.localScale = new Vector3( strength * POINTER_LENGTH, 1, POINTER_LENGTH );
-            PLANE.transform.localPosition = new Vector3( PLANE.transform.localScale.x * 5, BALL.transform.localScale.y/-2.1f, 0 );
+            POINTER.transform.localScale = new Vector3( strength * POINTER_LENGTH, 1, POINTER_LENGTH );
+            POINTER.transform.localPosition = new Vector3(POINTER.transform.localScale.x * 5, BALL.transform.localScale.y/-2.1f, 0 );
             GOLF_CLUB.transform.Rotate( 0, strength - last_strength, 0 );
 
             last_strength = strength;
@@ -299,5 +311,8 @@ public class PlayerScript : MonoBehaviour
         }
     }
 
-
+    public void reachedGoal()
+    {
+        play_state = PLAY_STATE.in_the_hole;
+    }
 }
