@@ -3,48 +3,72 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-[RequireComponent(typeof(CanvasGroup))]
 public class PauseMenuToggle : MonoBehaviour
 {
-    private CanvasGroup canvasGroup;
+    private CanvasGroup pauseMenu, settings;
     void Awake()
     {
-        canvasGroup = GetComponent<CanvasGroup>();
-        if (!canvasGroup)
-            Debug.Log("CanvasGroup missing!");
-        
-        // this method disables the in-game menu anyway
-        ResumeButtonClicked();
+        pauseMenu = GetComponentsInChildren<CanvasGroup>()[0];
+        settings = GetComponentsInChildren<CanvasGroup>()[1];
+
+        if (pauseMenu.name != "PausedMenu") {
+            CanvasGroup temp = pauseMenu;
+            pauseMenu = settings;
+            settings = temp;
+        }
+
+        pauseMenu.interactable = false;
+        pauseMenu.blocksRaycasts = false;
+        pauseMenu.alpha = 0f;
+        settings.interactable = false;
+        settings.blocksRaycasts = false;
+        settings.alpha = 0f;
     }
 
     // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyUp(KeyCode.Escape)) {
-            if (canvasGroup.interactable) {
-                canvasGroup.interactable = false;
-                canvasGroup.blocksRaycasts = false;
-                canvasGroup.alpha = 0f;
+            if (pauseMenu.blocksRaycasts) {
+                if (!settings.interactable) {
+                    pauseMenu.interactable = false;
+                    pauseMenu.blocksRaycasts = false;
+                    pauseMenu.alpha = 0f;
+                } else {
+                    CloseSettingsClicked();
+                }
             } else {
-                canvasGroup.interactable = true;
-                canvasGroup.blocksRaycasts = true;
-                canvasGroup.alpha = 1f;
+                pauseMenu.interactable = true;
+                pauseMenu.blocksRaycasts = true;
+                pauseMenu.alpha = 1f;
             }
         }
     }
 
-    public void ResumeButtonClicked()
+    public void OnSettingsClicked()
     {
-        canvasGroup.interactable = false;
-        canvasGroup.blocksRaycasts = false;
-        canvasGroup.alpha = 0f;
-        Time.timeScale = 0f;
+        pauseMenu.interactable = false;
+        settings.interactable = true;
+        settings.blocksRaycasts = true;
+        settings.alpha = 1f;
     }
 
-    public void QuitButtonClicked()
+    public void CloseSettingsClicked()
     {
-        // Menu scene must be at index 0
-        Debug.Log("Quit");
-        SceneManager.LoadScene(0);
+        pauseMenu.interactable = true;
+        settings.interactable = false;
+        settings.blocksRaycasts = false;
+        settings.alpha = 0f;
+    }
+
+    public void OnReturnHomeClicked()
+    {
+        SceneManager.LoadScene("Menu");
+    }
+
+    public void OnQuitClicked()
+    {
+        Debug.Log("Game quit successfully!");
+        Application.Quit();
     }
 }
