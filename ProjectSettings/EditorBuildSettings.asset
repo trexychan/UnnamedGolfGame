@@ -9,6 +9,6 @@ EditorBuildSettings:
     path: Assets/Scenes/Menu.unity
     guid: 9fc0d4010bbf28b4594072e72b8655ab
   - enabled: 1
-    path: Assets/Scenes/Example Scene.unity
+    path: Assets/Scenes/Tamjid World 2.0.unity
     guid: 6a2ab46fabd9bed4dac3f4112bb6b001
   m_configObjects: {}
