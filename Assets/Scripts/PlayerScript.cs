@@ -29,6 +29,7 @@ public class PlayerScript : NetworkBehaviour
     private float right_mouse_x = 0;
     private float right_mouse_y = 0;
     private Vector3 last_ball_pos;
+    private Vector3 last_valid_position;
     private float timer = 1.0f;
     private float last_strength = 0.0f;
     private float last_camera_angle_x = 0.0f;
@@ -79,6 +80,7 @@ public class PlayerScript : NetworkBehaviour
         switch (play_state)
         {
             case PLAY_STATE.waiting_for_player:
+                
                 ball_rb.velocity = Vector3.zero;
                 _handle_left_click();
                 _handle_right_click();
@@ -149,6 +151,7 @@ public class PlayerScript : NetworkBehaviour
         ROTATOR.SetActive(true);
         last_strength = 0;
         ROTATOR.transform.position = BALL.transform.position;
+        last_valid_position = BALL.transform.position;
         play_state = PLAY_STATE.waiting_for_player;
     }
 
@@ -318,6 +321,13 @@ public class PlayerScript : NetworkBehaviour
 
     public void pickedUpPowerUp(PowerUp power_up)
     {
+
+    }
+    public void resetOnDeath()
+    {
+        BALL.transform.position = last_valid_position;
+        ball_rb.velocity = Vector3.zero;
+        _next_turn();
 
     }
 }

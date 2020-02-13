@@ -25,5 +25,10 @@ public class BallScript : NetworkBehaviour
             collision.gameObject.GetComponent<PowerUpController>().PickUp();
             ENTITY.GetComponent<PlayerScript>().pickedUpPowerUp(powerUpType);
         }
+        if (collision.gameObject.tag == "Death")
+        {
+            Debug.Log("DEATH!");
+            ENTITY.GetComponent<PlayerScript>().resetOnDeath();
+        }
     } 
 }
