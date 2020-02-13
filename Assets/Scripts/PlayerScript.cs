@@ -315,4 +315,9 @@ public class PlayerScript : NetworkBehaviour
     {
         play_state = PLAY_STATE.in_the_hole;
     }
+
+    public void pickedUpPowerUp(PowerUp power_up)
+    {
+
+    }
 }
