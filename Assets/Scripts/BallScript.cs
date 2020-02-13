@@ -15,4 +15,15 @@ public class BallScript : NetworkBehaviour
             ENTITY.GetComponent<PlayerScript>().reachedGoal();
         }
     }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.tag == "PowerUp")
+        {
+            Debug.Log("hit power up!");
+            PowerUp powerUpType = collision.gameObject.GetComponent<PowerUpController>().GetPowerUp();
+            collision.gameObject.GetComponent<PowerUpController>().PickUp();
+            ENTITY.GetComponent<PlayerScript>().pickedUpPowerUp(powerUpType);
+        }
+    } 
 }
