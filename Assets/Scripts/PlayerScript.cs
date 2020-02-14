@@ -12,8 +12,9 @@ public class PlayerScript : NetworkBehaviour
     public GameObject GOLF_CLUB;
     public GameObject BALL;
     public GameObject POINTER;
-    public GameObject start;
-    public GameObject goal;
+    public GameObject START;
+    public GameObject GOAL;
+    public String PLAYER_NAME;
     public Color BALL_COLOR;
 
     public int THRUST_MULTIPLIER = 3;
@@ -29,7 +30,7 @@ public class PlayerScript : NetworkBehaviour
     private float right_mouse_x = 0;
     private float right_mouse_y = 0;
     private Vector3 last_ball_pos;
-    private Vector3 last_valid_position;
+    public Vector3 last_valid_position;
     private float timer = 1.0f;
     private float last_strength = 0.0f;
     private float last_camera_angle_x = 0.0f;
@@ -57,6 +58,10 @@ public class PlayerScript : NetworkBehaviour
     // Start is called before the first frame update
     public override void OnStartAuthority()
     {
+        START = GameObject.Find("Start");
+        this.transform.position = START.transform.position + new Vector3(0,.05f,0);
+        this.transform.rotation = START.transform.rotation;
+        BALL.transform.position = START.transform.position + new Vector3(0,.05f, 0);
         ball_rb = BALL.GetComponent<Rigidbody>();
         BALL.GetComponent<MeshRenderer>().material.color = new Color(
             Random.Range(0f, 1f),
@@ -237,7 +242,7 @@ public class PlayerScript : NetworkBehaviour
         {
             float curr_x_angle = (Input.mousePosition.x - right_mouse_x) / 10;
             float curr_y_angle = (Input.mousePosition.y - right_mouse_y) / -10;
-            CAMERA_OBJ.transform.Rotate(curr_y_angle - last_camera_angle_y, curr_x_angle - last_camera_angle_x, 0);
+            CAMERA_OBJ.transform.Rotate(curr_y_angle - last_camera_angle_y, curr_x_angle - last_camera_angle_x, 0, Space.World);
 
             last_camera_angle_x = curr_x_angle;
             last_camera_angle_y = curr_y_angle;
@@ -254,7 +259,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                CAMERA_OBJ.transform.Translate(2 * Vector3.forward * Time.deltaTime);
+                CAMERA_OBJ.transform.Translate(2 * Vector3.forward * Time.deltaTime, Space.World);
             }
         }
         else if (s_clicked)
@@ -265,7 +270,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                CAMERA_OBJ.transform.Translate(-2f * Vector3.forward * Time.deltaTime);
+                CAMERA_OBJ.transform.Translate(-2f * Vector3.forward * Time.deltaTime, Space.World);
             }
         }
         if (!s_clicked && Input.GetKeyDown(KeyCode.W))
@@ -289,7 +294,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                CAMERA_OBJ.transform.Translate(-2 * Vector3.right * Time.deltaTime);
+                CAMERA_OBJ.transform.Translate(-2 * Vector3.right * Time.deltaTime, Space.World);
             }
         }
         else if (d_clicked)
@@ -300,7 +305,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                CAMERA_OBJ.transform.Translate(2 * Vector3.right * Time.deltaTime);
+                CAMERA_OBJ.transform.Translate(2 * Vector3.right * Time.deltaTime, Space.World);
             }
         }
         if (!d_clicked && Input.GetKeyDown(KeyCode.A))
@@ -325,9 +330,10 @@ public class PlayerScript : NetworkBehaviour
     }
     public void resetOnDeath()
     {
-        BALL.transform.position = last_valid_position;
+        Debug.Log("reseting from death");
         ball_rb.velocity = Vector3.zero;
+        CAMERA_OBJ.transform.position = CAMERA_OBJ.transform.position + last_valid_position - BALL.transform.position;
+        BALL.transform.position = last_valid_position;
         _next_turn();
-
     }
 }
