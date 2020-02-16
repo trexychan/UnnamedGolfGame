@@ -46,6 +46,7 @@ public class PlayerScript : NetworkBehaviour
     private bool moving_club = false;
     private float rest_timer = 0f;
     private Rigidbody ball_rb;
+    public float actual_time_swinging = 0f;
 
     public enum PLAY_STATE
     {
@@ -61,8 +62,9 @@ public class PlayerScript : NetworkBehaviour
         START = GameObject.Find("Start");
         this.transform.position = START.transform.position + new Vector3(0,.05f,0);
         this.transform.rotation = START.transform.rotation;
-        BALL.transform.position = START.transform.position + new Vector3(0,.05f, 0);
+        BALL.transform.position = START.transform.position + new Vector3(0, .05f, 0);
         ball_rb = BALL.GetComponent<Rigidbody>();
+        ball_rb.maxAngularVelocity = 100000;
         BALL.GetComponent<MeshRenderer>().material.color = new Color(
             Random.Range(0f, 1f),
             Random.Range(0f, 1f),
@@ -117,6 +119,7 @@ public class PlayerScript : NetworkBehaviour
                 CAMERA_OBJ.transform.position = cam_pos + diff_ball_pos;
                 if (timer > -1 * HIT_TIMER)
                 {
+                    actual_time_swinging += Time.deltaTime;
                     GOLF_CLUB.transform.Rotate(0, -1 * last_strength * Time.deltaTime / HIT_TIMER, 0);
                     timer = timer - Time.deltaTime;
                 }
@@ -127,11 +130,12 @@ public class PlayerScript : NetworkBehaviour
                 else if (moving_club)
                 {
                     moving_club = false;
-                    GOLF_CLUB.transform.Rotate(0, last_strength, 0);
+                    GOLF_CLUB.transform.Rotate(0, last_strength * actual_time_swinging / HIT_TIMER, 0);
                     ROTATOR.SetActive(false);
                 }
                 else if ( rest_timer > 2.0f )
                 {
+                    actual_time_swinging = 0f;
                     ball_rb.velocity = Vector3.zero;
                     _next_turn();
                 }
