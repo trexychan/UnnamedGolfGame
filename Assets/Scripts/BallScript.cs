@@ -42,7 +42,15 @@ public class BallScript : NetworkBehaviour
         if (collision.gameObject.tag == "Death")
         {
             Debug.Log("DEATH!");
-            ENTITY.GetComponent<PlayerScript>().resetOnDeath();
+            ENTITY.GetComponent<PlayerScript>().enterDeathZone();
         }
-    } 
+    }
+    private void OnCollisionExit(Collision collision)
+    {
+        if (collision.gameObject.tag == "Death")
+        {
+            Debug.Log("DEATH!");
+            ENTITY.GetComponent<PlayerScript>().exitDeathZone();
+        }
+    }
 }

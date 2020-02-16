@@ -16,7 +16,7 @@ public class PlayerScript : NetworkBehaviour
     public GameObject GOAL;
     public String PLAYER_NAME;
     public Color BALL_COLOR;
-
+    public float TIME_TILL_DEATH = 1.5f;
     public int THRUST_MULTIPLIER = 3;
     public float MAX_STRENGTH = 40;
     public float POINTER_LENGTH = 2.5e-03f;
@@ -25,16 +25,18 @@ public class PlayerScript : NetworkBehaviour
     public PLAY_STATE play_state = PLAY_STATE.waiting_for_player;
   
     private float strength = 0.0f;
-    private float left_mouse_x = 0;
-    private float left_mouse_y = 0;
-    private float right_mouse_x = 0;
-    private float right_mouse_y = 0;
+    private float left_mouse_x = 0.0f;
+    private float left_mouse_y = 0.0f;
+    private float right_mouse_x = 0.0f;
+    private float right_mouse_y = 0.0f;
+    private float death_zone_timer = 0.0f;
     private Vector3 last_ball_pos;
     public Vector3 last_valid_position;
     private float timer = 1.0f;
     private float last_strength = 0.0f;
     private float last_camera_angle_x = 0.0f;
     private float last_camera_angle_y = 0.0f;
+    private bool in_death_zone = false;
     private bool left_mouse_clicked = false;
     private bool right_mouse_clicked = false;
     private bool left_arrow_clicked = false;
@@ -87,7 +89,11 @@ public class PlayerScript : NetworkBehaviour
         switch (play_state)
         {
             case PLAY_STATE.waiting_for_player:
-                
+                if (in_death_zone)
+                {
+                    _resetOnDeath();
+                    break;
+                }
                 ball_rb.velocity = Vector3.zero;
                 _handle_left_click();
                 _handle_right_click();
@@ -112,6 +118,13 @@ public class PlayerScript : NetworkBehaviour
                 }
                 break;
             case PLAY_STATE.ball_rolling:
+                if (in_death_zone && death_zone_timer <= 0)
+                {
+                    _resetOnDeath();
+                    break;
+                }
+                if (in_death_zone)
+                    death_zone_timer -= Time.deltaTime;
                 Vector3 diff_ball_pos = BALL.transform.position - last_ball_pos;
                 Vector3 cam_pos = CAMERA_OBJ.transform.position;
                 _handle_ws();
@@ -332,12 +345,23 @@ public class PlayerScript : NetworkBehaviour
     {
 
     }
-    public void resetOnDeath()
+    private void _resetOnDeath()
     {
         Debug.Log("reseting from death");
         ball_rb.velocity = Vector3.zero;
         CAMERA_OBJ.transform.position = CAMERA_OBJ.transform.position + last_valid_position - BALL.transform.position;
         BALL.transform.position = last_valid_position;
         _next_turn();
+        in_death_zone = false;
+        _next_turn();
+    }
+    public void enterDeathZone()
+    {
+        in_death_zone = true;
+        death_zone_timer = TIME_TILL_DEATH;
+    }
+    public void exitDeathZone()
+    {
+        in_death_zone = false;
     }
 }
