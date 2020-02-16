@@ -4,10 +4,10 @@
 TagManager:
   serializedVersion: 2
   tags:
-  - Ball
   - goal
   - PowerUp
   - Death
+  - ball
   layers:
   - Default
   - TransparentFX

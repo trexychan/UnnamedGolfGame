@@ -5,6 +5,20 @@ public class BallScript : NetworkBehaviour
 
 {
     public GameObject ENTITY;
+    public float coolDownTimer = 0;
+
+    private void Start()
+    {
+        this.gameObject.tag = "ball";
+    }
+
+    private void Update()
+    {
+        if (coolDownTimer > 0)
+        {
+            coolDownTimer -= Time.deltaTime;
+        }
+    }
 
     private void OnTriggerEnter(Collider collider)
     {
