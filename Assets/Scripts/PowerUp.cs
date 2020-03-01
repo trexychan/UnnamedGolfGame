@@ -5,5 +5,5 @@ using UnityEngine;
 public interface PowerUp
 {
     string name { get; set; }
-    void onUse();
+    void onUse(GameObject ball);
 }
