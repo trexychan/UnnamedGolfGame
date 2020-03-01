@@ -12,8 +12,9 @@ public class PlayerScript : NetworkBehaviour
     public GameObject GOLF_CLUB;
     public GameObject BALL;
     public GameObject POINTER;
-    public GameObject start;
-    public GameObject goal;
+    public GameObject START;
+    public GameObject GOAL;
+    public String PLAYER_NAME;
     public Color BALL_COLOR;
 
     public int THRUST_MULTIPLIER = 3;
@@ -29,6 +30,7 @@ public class PlayerScript : NetworkBehaviour
     private float right_mouse_x = 0;
     private float right_mouse_y = 0;
     private Vector3 last_ball_pos;
+    public Vector3 last_valid_position;
     private float timer = 1.0f;
     private float last_strength = 0.0f;
     private float last_camera_angle_x = 0.0f;
@@ -44,6 +46,7 @@ public class PlayerScript : NetworkBehaviour
     private bool moving_club = false;
     private float rest_timer = 0f;
     private Rigidbody ball_rb;
+    public float actual_time_swinging = 0f;
 
     public enum PLAY_STATE
     {
@@ -56,7 +59,12 @@ public class PlayerScript : NetworkBehaviour
     // Start is called before the first frame update
     public override void OnStartAuthority()
     {
+        START = GameObject.Find("Start");
+        this.transform.position = START.transform.position + new Vector3(0,.05f,0);
+        this.transform.rotation = START.transform.rotation;
+        BALL.transform.position = START.transform.position + new Vector3(0, .05f, 0);
         ball_rb = BALL.GetComponent<Rigidbody>();
+        ball_rb.maxAngularVelocity = 100000;
         BALL.GetComponent<MeshRenderer>().material.color = new Color(
             Random.Range(0f, 1f),
             Random.Range(0f, 1f),
@@ -79,6 +87,7 @@ public class PlayerScript : NetworkBehaviour
         switch (play_state)
         {
             case PLAY_STATE.waiting_for_player:
+                
                 ball_rb.velocity = Vector3.zero;
                 _handle_left_click();
                 _handle_right_click();
@@ -110,6 +119,7 @@ public class PlayerScript : NetworkBehaviour
                 CAMERA_OBJ.transform.position = cam_pos + diff_ball_pos;
                 if (timer > -1 * HIT_TIMER)
                 {
+                    actual_time_swinging += Time.deltaTime;
                     GOLF_CLUB.transform.Rotate(0, -1 * last_strength * Time.deltaTime / HIT_TIMER, 0);
                     timer = timer - Time.deltaTime;
                 }
@@ -120,11 +130,12 @@ public class PlayerScript : NetworkBehaviour
                 else if (moving_club)
                 {
                     moving_club = false;
-                    GOLF_CLUB.transform.Rotate(0, last_strength, 0);
+                    GOLF_CLUB.transform.Rotate(0, last_strength * actual_time_swinging / HIT_TIMER, 0);
                     ROTATOR.SetActive(false);
                 }
                 else if ( rest_timer > 2.0f )
                 {
+                    actual_time_swinging = 0f;
                     ball_rb.velocity = Vector3.zero;
                     _next_turn();
                 }
@@ -149,6 +160,7 @@ public class PlayerScript : NetworkBehaviour
         ROTATOR.SetActive(true);
         last_strength = 0;
         ROTATOR.transform.position = BALL.transform.position;
+        last_valid_position = BALL.transform.position;
         play_state = PLAY_STATE.waiting_for_player;
     }
 
@@ -234,7 +246,7 @@ public class PlayerScript : NetworkBehaviour
         {
             float curr_x_angle = (Input.mousePosition.x - right_mouse_x) / 10;
             float curr_y_angle = (Input.mousePosition.y - right_mouse_y) / -10;
-            CAMERA_OBJ.transform.Rotate(curr_y_angle - last_camera_angle_y, curr_x_angle - last_camera_angle_x, 0);
+            CAMERA_OBJ.transform.Rotate(curr_y_angle - last_camera_angle_y, curr_x_angle - last_camera_angle_x, 0, Space.World);
 
             last_camera_angle_x = curr_x_angle;
             last_camera_angle_y = curr_y_angle;
@@ -251,7 +263,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                CAMERA_OBJ.transform.Translate(2 * Vector3.forward * Time.deltaTime);
+                CAMERA_OBJ.transform.Translate(2 * Vector3.forward * Time.deltaTime, Space.World);
             }
         }
         else if (s_clicked)
@@ -262,7 +274,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                CAMERA_OBJ.transform.Translate(-2f * Vector3.forward * Time.deltaTime);
+                CAMERA_OBJ.transform.Translate(-2f * Vector3.forward * Time.deltaTime, Space.World);
             }
         }
         if (!s_clicked && Input.GetKeyDown(KeyCode.W))
@@ -286,7 +298,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                CAMERA_OBJ.transform.Translate(-2 * Vector3.right * Time.deltaTime);
+                CAMERA_OBJ.transform.Translate(-2 * Vector3.right * Time.deltaTime, Space.World);
             }
         }
         else if (d_clicked)
@@ -297,7 +309,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                CAMERA_OBJ.transform.Translate(2 * Vector3.right * Time.deltaTime);
+                CAMERA_OBJ.transform.Translate(2 * Vector3.right * Time.deltaTime, Space.World);
             }
         }
         if (!d_clicked && Input.GetKeyDown(KeyCode.A))
@@ -314,5 +326,18 @@ public class PlayerScript : NetworkBehaviour
     public void reachedGoal()
     {
         play_state = PLAY_STATE.in_the_hole;
+    }
+
+    public void pickedUpPowerUp(PowerUp power_up)
+    {
+
+    }
+    public void resetOnDeath()
+    {
+        Debug.Log("reseting from death");
+        ball_rb.velocity = Vector3.zero;
+        CAMERA_OBJ.transform.position = CAMERA_OBJ.transform.position + last_valid_position - BALL.transform.position;
+        BALL.transform.position = last_valid_position;
+        _next_turn();
     }
 }
