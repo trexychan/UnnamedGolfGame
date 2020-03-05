@@ -28,12 +28,21 @@ public class BallScript : NetworkBehaviour
             Debug.Log("reached goal");
             ENTITY.GetComponent<PlayerScript>().reachedGoal();
         }
-        if (collider.gameObject.tag == "PowerUp")
+        else if (collider.gameObject.tag == "PowerUp")
         {
             Debug.Log("hit power up!");
             PowerUp powerUpType = collider.gameObject.GetComponent<PowerUpController>().GetPowerUp();
             collider.gameObject.GetComponent<PowerUpController>().PickUp();
             ENTITY.GetComponent<PlayerScript>().pickedUpPowerUp(powerUpType);
+        }
+        // Sabin Kim: Apply greater force upon touching SpeedUp pad
+        else if (collider.gameObject.tag == "SpeedUp")
+        {
+            Debug.Log("speeding up!");
+            Quaternion speedupRotation = collider.gameObject.transform.rotation;
+            // will figure out exact Vector3 of force later
+            Vector3 force = Vector3.forward * 7;
+            GetComponent<Rigidbody>().AddForce(force, ForceMode.Impulse);
         }
     }
 
