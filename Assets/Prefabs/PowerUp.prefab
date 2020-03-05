@@ -106,3 +106,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 494dc8c48f30bb44892fd3b5c7fbce47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  powerTypes: 
+  RESET_TIME: 5

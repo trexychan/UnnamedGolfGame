@@ -9,6 +9,7 @@ public class PlayerScript : NetworkBehaviour
 {
     public GameObject CAMERA_OBJ;
     public GameObject ROTATOR;
+    public GameObject CLUB_MODEL;
     public GameObject GOLF_CLUB;
     public GameObject BALL;
     public GameObject POINTER;
@@ -16,25 +17,30 @@ public class PlayerScript : NetworkBehaviour
     public GameObject GOAL;
     public String PLAYER_NAME;
     public Color BALL_COLOR;
-
+    public float TIME_TILL_DEATH = 1.5f;
     public int THRUST_MULTIPLIER = 3;
     public float MAX_STRENGTH = 40;
+    public float STRENGTH_THRESHOLD = 1;
     public float POINTER_LENGTH = 2.5e-03f;
     public float HIT_TIMER = .05f;
     public float BALL_STOPPING_SPEED = .5f;
     public PLAY_STATE play_state = PLAY_STATE.waiting_for_player;
-  
+
+    public PowerUp power_up;
+
     private float strength = 0.0f;
-    private float left_mouse_x = 0;
-    private float left_mouse_y = 0;
-    private float right_mouse_x = 0;
-    private float right_mouse_y = 0;
+    private float left_mouse_x = 0.0f;
+    private float left_mouse_y = 0.0f;
+    private float right_mouse_x = 0.0f;
+    private float right_mouse_y = 0.0f;
+    private float death_zone_timer = 0.0f;
     private Vector3 last_ball_pos;
     public Vector3 last_valid_position;
     private float timer = 1.0f;
     private float last_strength = 0.0f;
     private float last_camera_angle_x = 0.0f;
     private float last_camera_angle_y = 0.0f;
+    private bool in_death_zone = false;
     private bool left_mouse_clicked = false;
     private bool right_mouse_clicked = false;
     private bool left_arrow_clicked = false;
@@ -76,24 +82,26 @@ public class PlayerScript : NetworkBehaviour
     }
 
     // Update is called once per frame
-    [Client]
     void Update()
     {
         if (!base.hasAuthority)
         {
-            print("HERE");
             return;
         }
+        _handle_right_click();
+        _handle_ws();
+        _handle_ad();
         switch (play_state)
         {
             case PLAY_STATE.waiting_for_player:
-                
+                if (in_death_zone)
+                {
+                    _resetOnDeath();
+                    break;
+                }
                 ball_rb.velocity = Vector3.zero;
                 _handle_left_click();
-                _handle_right_click();
                 _handle_arrow_keys();
-                _handle_ws();
-                _handle_ad();
                 break;
             case PLAY_STATE.hitting_ball:
                 if ( timer > 0)
@@ -112,10 +120,16 @@ public class PlayerScript : NetworkBehaviour
                 }
                 break;
             case PLAY_STATE.ball_rolling:
+                if (in_death_zone && death_zone_timer <= 0)
+                {
+                    _resetOnDeath();
+                    break;
+                }
+                if (in_death_zone)
+                    death_zone_timer -= Time.deltaTime;
                 Vector3 diff_ball_pos = BALL.transform.position - last_ball_pos;
                 Vector3 cam_pos = CAMERA_OBJ.transform.position;
-                _handle_ws();
-                _handle_ad();
+                _handle_space_bar();
                 CAMERA_OBJ.transform.position = cam_pos + diff_ball_pos;
                 if (timer > -1 * HIT_TIMER)
                 {
@@ -131,7 +145,7 @@ public class PlayerScript : NetworkBehaviour
                 {
                     moving_club = false;
                     GOLF_CLUB.transform.Rotate(0, last_strength * actual_time_swinging / HIT_TIMER, 0);
-                    ROTATOR.SetActive(false);
+                    Cmd_disable_golf_club();
                 }
                 else if ( rest_timer > 2.0f )
                 {
@@ -157,7 +171,7 @@ public class PlayerScript : NetworkBehaviour
 
     private void _next_turn()
     {
-        ROTATOR.SetActive(true);
+        Cmd_enable_golf_club();
         last_strength = 0;
         ROTATOR.transform.position = BALL.transform.position;
         last_valid_position = BALL.transform.position;
@@ -209,8 +223,11 @@ public class PlayerScript : NetworkBehaviour
         }
         else if (Input.GetMouseButtonUp(0) && left_mouse_clicked)
         {
-            play_state = PLAY_STATE.hitting_ball;
-            timer = HIT_TIMER;
+            if (last_strength > STRENGTH_THRESHOLD)
+            {
+                play_state = PLAY_STATE.hitting_ball;
+                timer = HIT_TIMER;
+            }
             left_mouse_clicked = false;
             left_mouse_x = 0;
             left_mouse_y = 0;
@@ -224,6 +241,30 @@ public class PlayerScript : NetworkBehaviour
 
             last_strength = strength;
         }
+    }
+
+    [Command]
+    void Cmd_disable_golf_club()
+    {
+        Rpc_disable_golf_club();
+    }
+
+    [ClientRpc]
+    void Rpc_disable_golf_club()
+    {
+        ROTATOR.SetActive(false);
+    }
+
+    [Command]
+    void Cmd_enable_golf_club()
+    {
+        Rpc_enable_golf_club();
+    }
+
+    [ClientRpc]
+    void Rpc_enable_golf_club()
+    {
+        ROTATOR.SetActive(true);
     }
 
     private void _handle_right_click()
@@ -328,16 +369,40 @@ public class PlayerScript : NetworkBehaviour
         play_state = PLAY_STATE.in_the_hole;
     }
 
+    public void _handle_space_bar()
+    {
+        if (this.power_up != null)
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                Debug.Log("Using Powerup: " + power_up.name);
+                this.power_up.onUse(BALL);
+                this.power_up = null;
+            }
+        }
+    }
+
     public void pickedUpPowerUp(PowerUp power_up)
     {
-
+        this.power_up = power_up;
     }
-    public void resetOnDeath()
+    private void _resetOnDeath()
     {
         Debug.Log("reseting from death");
         ball_rb.velocity = Vector3.zero;
         CAMERA_OBJ.transform.position = CAMERA_OBJ.transform.position + last_valid_position - BALL.transform.position;
         BALL.transform.position = last_valid_position;
         _next_turn();
+        in_death_zone = false;
+        _next_turn();
+    }
+    public void enterDeathZone()
+    {
+        in_death_zone = true;
+        death_zone_timer = TIME_TILL_DEATH;
+    }
+    public void exitDeathZone()
+    {
+        in_death_zone = false;
     }
 }
