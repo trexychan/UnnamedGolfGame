@@ -38,10 +38,13 @@ public class BallScript : NetworkBehaviour
         // Sabin Kim: Apply greater force upon touching SpeedUp pad
         else if (collider.gameObject.tag == "SpeedUp")
         {
-            Debug.Log("speeding up!");
+            Debug.Log("speeding up");
             Quaternion speedupRotation = collider.gameObject.transform.rotation;
-            // will figure out exact Vector3 of force later
-            Vector3 force = Vector3.forward * 7;
+            // for now, assume SpeedUp pads are parallel to xz-plane
+            Vector3 force = new Vector3((float) (-1 * Math.Cos(speedupRotation.y)),
+                                        0, 
+                                        (float) Math.Sin(speedupRotation.y));
+            force *= 7;
             GetComponent<Rigidbody>().AddForce(force, ForceMode.Impulse);
         }
     }
