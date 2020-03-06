@@ -17,8 +17,9 @@ public class PlayerScript : NetworkBehaviour
     public GameObject GOAL;
     public String PLAYER_NAME;
     public Color BALL_COLOR;
-    public float TIME_TILL_DEATH = 1.5f;
-    public int THRUST_MULTIPLIER = 3;
+    public float TIME_TILL_DEATH = 2.5f;
+    public float THRUST_MULTIPLIER = 3.0f;
+    public float ROTATE_STRENGTH = 10.0f;
     public float MAX_STRENGTH = 40;
     public float STRENGTH_THRESHOLD = 1;
     public float POINTER_LENGTH = 2.5e-03f;
@@ -40,7 +41,7 @@ public class PlayerScript : NetworkBehaviour
     private float last_strength = 0.0f;
     private float last_camera_angle_x = 0.0f;
     private float last_camera_angle_y = 0.0f;
-    private bool in_death_zone = false;
+    public bool in_death_zone = false;
     private bool left_mouse_clicked = false;
     private bool right_mouse_clicked = false;
     private bool left_arrow_clicked = false;
@@ -50,9 +51,10 @@ public class PlayerScript : NetworkBehaviour
     private bool s_clicked = false;
     private bool d_clicked = false;
     private bool moving_club = false;
+    private bool add_impulse = false;
     private float rest_timer = 0f;
     private Rigidbody ball_rb;
-    public float actual_time_swinging = 0f;
+    private float actual_time_swinging = 0f;
 
     public enum PLAY_STATE
     {
@@ -113,8 +115,7 @@ public class PlayerScript : NetworkBehaviour
                 {
                     rest_timer = 0f;
                     last_ball_pos = BALL.transform.position;
-                    float thrust = last_strength * THRUST_MULTIPLIER;
-                    ball_rb.AddForce( ROTATOR.transform.right * thrust );
+                    add_impulse = true;
                     play_state = PLAY_STATE.ball_rolling;
                     moving_club = true;
                 }
@@ -169,6 +170,16 @@ public class PlayerScript : NetworkBehaviour
         }
     }
 
+    private void FixedUpdate()
+    {
+        if ( add_impulse == true )
+        {
+            float thrust = last_strength * THRUST_MULTIPLIER;
+            ball_rb.AddForce(ROTATOR.transform.right * thrust);
+            add_impulse = false;
+        }
+    }
+
     private void _next_turn()
     {
         Cmd_enable_golf_club();
@@ -188,7 +199,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                ROTATOR.transform.Rotate(0, 1, 0);
+                ROTATOR.transform.Rotate( Vector3.up * ROTATE_STRENGTH * Time.deltaTime );
             }
         }
         else if (right_arrow_clicked)
@@ -199,7 +210,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                ROTATOR.transform.Rotate(0, -1, 0);
+                ROTATOR.transform.Rotate( Vector3.down * ROTATE_STRENGTH * Time.deltaTime );
             }
         }
         if (!right_arrow_clicked && Input.GetKeyDown(KeyCode.LeftArrow))
