@@ -8,7 +8,8 @@ public class PowerUpController : MonoBehaviour
     // Start is called before the first frame update
     public enum POWERUPS
     {
-        JumpPowerUp
+        JumpPowerUp,
+        SpeedUpPowerUp
     }
 
     public POWERUPS[] powerTypes;
