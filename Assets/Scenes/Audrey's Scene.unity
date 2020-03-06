@@ -27711,6 +27711,16 @@ PrefabInstance:
       propertyPath: m_LocalScale.z
       value: 0.5
       objectReference: {fileID: 0}
+    - target: {fileID: 1895454982455840829, guid: 1b7042814af92614090e470edc5af8cc,
+        type: 3}
+      propertyPath: powerTypes.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1895454982455840829, guid: 1b7042814af92614090e470edc5af8cc,
+        type: 3}
+      propertyPath: powerTypes.Array.data[1]
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1b7042814af92614090e470edc5af8cc, type: 3}
 --- !u!1 &1595726468
