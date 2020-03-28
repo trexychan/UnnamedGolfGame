@@ -2,9 +2,9 @@
 using System;
 using Mirror;
 public class BallScript : NetworkBehaviour
-
 {
     public GameObject ENTITY;
+    public float SPEED_UP_SPEED = 1.5f;
     public float coolDownTimer = 0;
 
     private void Start()
@@ -39,13 +39,10 @@ public class BallScript : NetworkBehaviour
         else if (collider.gameObject.tag == "SpeedUp")
         {
             Debug.Log("speeding up");
-            Quaternion speedupRotation = collider.gameObject.transform.rotation;
-            // for now, assume SpeedUp pads are parallel to xz-plane
-            Vector3 force = new Vector3((float) (-1 * Math.Cos(speedupRotation.y)),
-                                        0, 
-                                        (float) Math.Sin(speedupRotation.y));
-            force *= 7;
-            GetComponent<Rigidbody>().AddForce(force, ForceMode.Impulse);
+            
+
+            Vector3 ball_direction = GetComponent<Rigidbody>().velocity / GetComponent<Rigidbody>().velocity.magnitude;
+            GetComponent<Rigidbody>().AddForce( ball_direction * SPEED_UP_SPEED, ForceMode.Impulse);
         }
     }
 

@@ -6,6 +6,8 @@ public class CameraController : MonoBehaviour
 {
     public Vector3 DEFAULT_POS = new Vector3( 21, 12, 6 );
     public Quaternion DEFAULT_ROT = new Quaternion( 0.1788776f, -0.8586125f, 0, 0.4804033f);
+    public Vector3 last_position = Vector3.zero;
+    public Vector3 curr_pos;
 
     /*
     // Start is called before the first frame update
@@ -23,12 +25,16 @@ public class CameraController : MonoBehaviour
     }
     */
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (ClientScene.localPlayer)
         {
-            this.gameObject.transform.position = ClientScene.localPlayer.gameObject.GetComponent<PlayerScript>().CAMERA_OBJ.transform.position;
-            this.gameObject.transform.rotation = ClientScene.localPlayer.gameObject.GetComponent<PlayerScript>().CAMERA_OBJ.transform.rotation;
+            curr_pos = ClientScene.localPlayer.gameObject.GetComponent<PlayerScript>().CAMERA_OBJ.transform.position;
+            if ( curr_pos != last_position) {
+                this.gameObject.transform.position = curr_pos;
+                this.gameObject.transform.rotation = ClientScene.localPlayer.gameObject.GetComponent<PlayerScript>().CAMERA_OBJ.transform.rotation;
+                last_position = curr_pos;
+            }
         }
     }
     /*

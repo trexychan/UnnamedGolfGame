@@ -81,15 +81,17 @@ MonoBehaviour:
   GOAL: {fileID: 8710377763397410942, guid: 9f85eb7715b81fd4e8fc5547c3c049f0, type: 3}
   PLAYER_NAME: 
   BALL_COLOR: {r: 0, g: 0, b: 0, a: 0}
-  THRUST_MULTIPLIER: 30
-  MAX_STRENGTH: 40
+  TIME_TILL_DEATH: 2.5
+  THRUST_MULTIPLIER: 25
+  ROTATE_STRENGTH: 35
+  MAX_STRENGTH: 50
   STRENGTH_THRESHOLD: 1
-  POINTER_LENGTH: 0.0025
+  POINTER_LENGTH: 0.005
   HIT_TIMER: 0.05
   BALL_STOPPING_SPEED: 0.5
   play_state: 0
   last_valid_position: {x: 0, y: 0, z: 0}
-  actual_time_swinging: 0
+  in_death_zone: 0
 --- !u!114 &668851320573419038
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -325,7 +327,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: b6d51f164d07c40438e998167ab12836, type: 2}
+  - {fileID: 2100000, guid: 14feac1864c68e643a75932d4b51a241, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
