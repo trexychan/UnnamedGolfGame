@@ -48,6 +48,10 @@ public class BallScript : NetworkBehaviour
         
         else if (collider.gameObject.tag == "Fire")
         {
+            if (ENTITY.GetComponent<PlayerScript>().isUsingFireProof())
+            {
+                return;
+            }
             Vector3 originalDirection = GetComponent<Rigidbody>().velocity.normalized;
 
             float random = UnityEngine.Random.Range(-.15f, .15f);

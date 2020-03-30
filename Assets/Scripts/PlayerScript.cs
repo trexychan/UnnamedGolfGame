@@ -56,6 +56,9 @@ public class PlayerScript : NetworkBehaviour
     private Rigidbody ball_rb;
     private float actual_time_swinging = 0f;
 
+    // Sabin Kim: (using_fireproof : bool) : true if player currently using fireproof powerup
+    private bool using_fireproof = false;
+
     public enum PLAY_STATE
     {
         waiting_for_player,
@@ -68,7 +71,7 @@ public class PlayerScript : NetworkBehaviour
     public override void OnStartAuthority()
     {
         START = GameObject.Find("Start");
-        this.transform.position = START.transform.position + new Vector3(0,.05f,0);
+        this.transform.position = START.transform.position + new Vector3(0, .05f, 0);
         this.transform.rotation = START.transform.rotation;
         BALL.transform.position = START.transform.position + new Vector3(0, .05f, 0);
         ball_rb = BALL.GetComponent<Rigidbody>();
@@ -78,7 +81,7 @@ public class PlayerScript : NetworkBehaviour
             Random.Range(0f, 1f),
             Random.Range(0f, 1f)
         );
-        POINTER.transform.localScale = new Vector3( 5* POINTER_LENGTH, 1, POINTER_LENGTH );
+        POINTER.transform.localScale = new Vector3(5 * POINTER_LENGTH, 1, POINTER_LENGTH);
         POINTER.transform.localPosition = new Vector3(POINTER.transform.localScale.x * 5, BALL.transform.localScale.y / -2.1f, 0);
         _next_turn();
     }
@@ -101,12 +104,16 @@ public class PlayerScript : NetworkBehaviour
                     _resetOnDeath();
                     break;
                 }
+                if (using_fireproof && !(power_up is FireProofPowerUp))
+                {
+                    using_fireproof = false;
+                }
                 ball_rb.velocity = Vector3.zero;
                 _handle_left_click();
                 _handle_arrow_keys();
                 break;
             case PLAY_STATE.hitting_ball:
-                if ( timer > 0)
+                if (timer > 0)
                 {
                     GOLF_CLUB.transform.Rotate(0, -1 * last_strength * Time.deltaTime / HIT_TIMER, 0);
                     timer = timer - Time.deltaTime;
@@ -148,15 +155,15 @@ public class PlayerScript : NetworkBehaviour
                     GOLF_CLUB.transform.Rotate(0, last_strength * actual_time_swinging / HIT_TIMER, 0);
                     Cmd_disable_golf_club();
                 }
-                else if ( rest_timer > 2.0f )
+                else if (rest_timer > 2.0f)
                 {
                     actual_time_swinging = 0f;
                     ball_rb.velocity = Vector3.zero;
                     _next_turn();
                 }
-                else if (ball_rb.velocity.magnitude < BALL_STOPPING_SPEED && ball_rb.velocity.y < 0.1 )
+                else if (ball_rb.velocity.magnitude < BALL_STOPPING_SPEED && ball_rb.velocity.y < 0.1)
                 {
-                    rest_timer = rest_timer + Time.deltaTime;           
+                    rest_timer = rest_timer + Time.deltaTime;
                 }
                 else
                 {
@@ -165,14 +172,17 @@ public class PlayerScript : NetworkBehaviour
                 last_ball_pos = BALL.transform.position;
                 break;
             case PLAY_STATE.in_the_hole:
-
+                if (!(power_up is FireProofPowerUp))
+                {
+                    using_fireproof = false;
+                }
                 break;
         }
     }
 
     private void FixedUpdate()
     {
-        if ( add_impulse == true )
+        if (add_impulse == true)
         {
             float thrust = last_strength * THRUST_MULTIPLIER;
             ball_rb.AddForce(ROTATOR.transform.right * thrust);
@@ -199,7 +209,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                ROTATOR.transform.Rotate( Vector3.up * ROTATE_STRENGTH * Time.deltaTime );
+                ROTATOR.transform.Rotate(Vector3.up * ROTATE_STRENGTH * Time.deltaTime);
             }
         }
         else if (right_arrow_clicked)
@@ -210,7 +220,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                ROTATOR.transform.Rotate( Vector3.down * ROTATE_STRENGTH * Time.deltaTime );
+                ROTATOR.transform.Rotate(Vector3.down * ROTATE_STRENGTH * Time.deltaTime);
             }
         }
         if (!right_arrow_clicked && Input.GetKeyDown(KeyCode.LeftArrow))
@@ -246,9 +256,9 @@ public class PlayerScript : NetworkBehaviour
         else if (left_mouse_clicked)
         {
             float strength = Math.Min(Math.Abs(Input.mousePosition.y - left_mouse_y) / 15, MAX_STRENGTH);
-            POINTER.transform.localScale = new Vector3( strength * POINTER_LENGTH, 1, POINTER_LENGTH );
-            POINTER.transform.localPosition = new Vector3(POINTER.transform.localScale.x * 5, BALL.transform.localScale.y/-2.1f, 0 );
-            GOLF_CLUB.transform.Rotate( 0, strength - last_strength, 0 );
+            POINTER.transform.localScale = new Vector3(strength * POINTER_LENGTH, 1, POINTER_LENGTH);
+            POINTER.transform.localPosition = new Vector3(POINTER.transform.localScale.x * 5, BALL.transform.localScale.y / -2.1f, 0);
+            GOLF_CLUB.transform.Rotate(0, strength - last_strength, 0);
 
             last_strength = strength;
         }
@@ -388,6 +398,10 @@ public class PlayerScript : NetworkBehaviour
             {
                 Debug.Log("Using Powerup: " + power_up.name);
                 this.power_up.onUse(BALL);
+                if (this.power_up is FireProofPowerUp)
+                {
+                    using_fireproof = true;
+                }
                 this.power_up = null;
             }
         }
@@ -415,5 +429,11 @@ public class PlayerScript : NetworkBehaviour
     public void exitDeathZone()
     {
         in_death_zone = false;
+    }
+
+    // Sabin Kim: getter for bool using_fireproof
+    public bool isUsingFireProof()
+    {
+        return using_fireproof;
     }
 }
