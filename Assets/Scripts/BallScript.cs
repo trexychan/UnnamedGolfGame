@@ -5,6 +5,7 @@ public class BallScript : NetworkBehaviour
 {
     public GameObject ENTITY;
     public float SPEED_UP_SPEED = 1.5f;
+    public float FIRE_FORCE = 15f;
     public float coolDownTimer = 0;
 
     private void Start()
@@ -35,11 +36,33 @@ public class BallScript : NetworkBehaviour
             collider.gameObject.GetComponent<PowerUpController>().PickUp();
             ENTITY.GetComponent<PlayerScript>().pickedUpPowerUp(powerUpType);
         }
-        // Sabin Kim: Apply greater force upon touching SpeedUp pad
+        
         else if (collider.gameObject.tag == "SpeedUp")
         {
+            Debug.Log("speeding up");
+            
+
             Vector3 ball_direction = GetComponent<Rigidbody>().velocity / GetComponent<Rigidbody>().velocity.magnitude;
             GetComponent<Rigidbody>().AddForce( ball_direction * SPEED_UP_SPEED, ForceMode.Impulse);
+        }
+        
+        else if (collider.gameObject.tag == "Fire")
+        {
+            if (ENTITY.GetComponent<PlayerScript>().isUsingFireProof())
+            {
+                return;
+            }
+            Vector3 originalDirection = GetComponent<Rigidbody>().velocity.normalized;
+
+            float random = UnityEngine.Random.Range(-.15f, .15f);
+            
+
+            Vector3 randomDirection = new Vector3(originalDirection.z - random,
+                                                  0,
+                                                  -originalDirection.x + random);
+
+            GetComponent<Rigidbody>().velocity = randomDirection * FIRE_FORCE;
+            Debug.Log(originalDirection + " -> " + randomDirection * FIRE_FORCE);
         }
     }
 

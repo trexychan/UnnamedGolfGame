@@ -9,7 +9,8 @@ public class PowerUpController : MonoBehaviour
     public enum POWERUPS
     {
         JumpPowerUp,
-        SpeedUpPowerUp
+        SpeedUpPowerUp,
+        FireProofPowerUp
     }
 
     public POWERUPS[] powerTypes;
@@ -50,7 +51,7 @@ public class PowerUpController : MonoBehaviour
         timer = RESET_TIME;
     }
 
-    public PowerUp GetPowerUp ()
+    public PowerUp GetPowerUp()
     {
         return powerUps[UnityEngine.Random.Range(0, powerTypes.Length)];
     }
