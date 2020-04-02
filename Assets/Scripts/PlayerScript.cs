@@ -4,11 +4,13 @@ using UnityEngine;
 using System;
 using Mirror;
 using Random = UnityEngine.Random;
+using UnityEngine.UI;
 
 public class PlayerScript : NetworkBehaviour
 {
     public GameObject CAMERA_OBJ;
     public GameObject ROTATOR;
+    public GameObject CLUB_MODEL;
     public GameObject GOLF_CLUB;
     public GameObject BALL;
     public GameObject POINTER;
@@ -16,25 +18,31 @@ public class PlayerScript : NetworkBehaviour
     public GameObject GOAL;
     public String PLAYER_NAME;
     public Color BALL_COLOR;
-
-    public int THRUST_MULTIPLIER = 3;
+    public float TIME_TILL_DEATH = 2.5f;
+    public float THRUST_MULTIPLIER = 3.0f;
+    public float ROTATE_STRENGTH = 10.0f;
     public float MAX_STRENGTH = 40;
+    public float STRENGTH_THRESHOLD = 1;
     public float POINTER_LENGTH = 2.5e-03f;
     public float HIT_TIMER = .05f;
     public float BALL_STOPPING_SPEED = .5f;
     public PLAY_STATE play_state = PLAY_STATE.waiting_for_player;
-  
+
+    public PowerUp power_up;
+
     private float strength = 0.0f;
-    private float left_mouse_x = 0;
-    private float left_mouse_y = 0;
-    private float right_mouse_x = 0;
-    private float right_mouse_y = 0;
+    private float left_mouse_x = 0.0f;
+    private float left_mouse_y = 0.0f;
+    private float right_mouse_x = 0.0f;
+    private float right_mouse_y = 0.0f;
+    private float death_zone_timer = 0.0f;
     private Vector3 last_ball_pos;
     public Vector3 last_valid_position;
     private float timer = 1.0f;
     private float last_strength = 0.0f;
     private float last_camera_angle_x = 0.0f;
     private float last_camera_angle_y = 0.0f;
+    public bool in_death_zone = false;
     private bool left_mouse_clicked = false;
     private bool right_mouse_clicked = false;
     private bool left_arrow_clicked = false;
@@ -44,9 +52,13 @@ public class PlayerScript : NetworkBehaviour
     private bool s_clicked = false;
     private bool d_clicked = false;
     private bool moving_club = false;
+    private bool add_impulse = false;
     private float rest_timer = 0f;
     private Rigidbody ball_rb;
-    public float actual_time_swinging = 0f;
+    private float actual_time_swinging = 0f;
+
+    // Sabin Kim: (using_fireproof : bool) : true if player currently using fireproof powerup
+    private bool using_fireproof = false;
 
     public enum PLAY_STATE
     {
@@ -60,7 +72,7 @@ public class PlayerScript : NetworkBehaviour
     public override void OnStartAuthority()
     {
         START = GameObject.Find("Start");
-        this.transform.position = START.transform.position + new Vector3(0,.05f,0);
+        this.transform.position = START.transform.position + new Vector3(0, .05f, 0);
         this.transform.rotation = START.transform.rotation;
         BALL.transform.position = START.transform.position + new Vector3(0, .05f, 0);
         ball_rb = BALL.GetComponent<Rigidbody>();
@@ -70,33 +82,39 @@ public class PlayerScript : NetworkBehaviour
             Random.Range(0f, 1f),
             Random.Range(0f, 1f)
         );
-        POINTER.transform.localScale = new Vector3( 5* POINTER_LENGTH, 1, POINTER_LENGTH );
+        POINTER.transform.localScale = new Vector3(5 * POINTER_LENGTH, 1, POINTER_LENGTH);
         POINTER.transform.localPosition = new Vector3(POINTER.transform.localScale.x * 5, BALL.transform.localScale.y / -2.1f, 0);
         _next_turn();
     }
 
     // Update is called once per frame
-    [Client]
     void Update()
     {
         if (!base.hasAuthority)
         {
-            print("HERE");
             return;
         }
+        _handle_right_click();
+        _handle_ws();
+        _handle_ad();
         switch (play_state)
         {
             case PLAY_STATE.waiting_for_player:
-                
+                if (in_death_zone)
+                {
+                    _resetOnDeath();
+                    break;
+                }
+                if (using_fireproof && !(power_up is FireProofPowerUp))
+                {
+                    using_fireproof = false;
+                }
                 ball_rb.velocity = Vector3.zero;
                 _handle_left_click();
-                _handle_right_click();
                 _handle_arrow_keys();
-                _handle_ws();
-                _handle_ad();
                 break;
             case PLAY_STATE.hitting_ball:
-                if ( timer > 0)
+                if (timer > 0)
                 {
                     GOLF_CLUB.transform.Rotate(0, -1 * last_strength * Time.deltaTime / HIT_TIMER, 0);
                     timer = timer - Time.deltaTime;
@@ -105,17 +123,22 @@ public class PlayerScript : NetworkBehaviour
                 {
                     rest_timer = 0f;
                     last_ball_pos = BALL.transform.position;
-                    float thrust = last_strength * THRUST_MULTIPLIER;
-                    ball_rb.AddForce( ROTATOR.transform.right * thrust );
+                    add_impulse = true;
                     play_state = PLAY_STATE.ball_rolling;
                     moving_club = true;
                 }
                 break;
             case PLAY_STATE.ball_rolling:
+                if (in_death_zone && death_zone_timer <= 0)
+                {
+                    _resetOnDeath();
+                    break;
+                }
+                if (in_death_zone)
+                    death_zone_timer -= Time.deltaTime;
                 Vector3 diff_ball_pos = BALL.transform.position - last_ball_pos;
                 Vector3 cam_pos = CAMERA_OBJ.transform.position;
-                _handle_ws();
-                _handle_ad();
+                _handle_space_bar();
                 CAMERA_OBJ.transform.position = cam_pos + diff_ball_pos;
                 if (timer > -1 * HIT_TIMER)
                 {
@@ -131,17 +154,17 @@ public class PlayerScript : NetworkBehaviour
                 {
                     moving_club = false;
                     GOLF_CLUB.transform.Rotate(0, last_strength * actual_time_swinging / HIT_TIMER, 0);
-                    ROTATOR.SetActive(false);
+                    Cmd_disable_golf_club();
                 }
-                else if ( rest_timer > 2.0f )
+                else if (rest_timer > 2.0f)
                 {
                     actual_time_swinging = 0f;
                     ball_rb.velocity = Vector3.zero;
                     _next_turn();
                 }
-                else if (ball_rb.velocity.magnitude < BALL_STOPPING_SPEED && ball_rb.velocity.y < 0.1 )
+                else if (ball_rb.velocity.magnitude < BALL_STOPPING_SPEED && ball_rb.velocity.y < 0.1)
                 {
-                    rest_timer = rest_timer + Time.deltaTime;           
+                    rest_timer = rest_timer + Time.deltaTime;
                 }
                 else
                 {
@@ -150,14 +173,27 @@ public class PlayerScript : NetworkBehaviour
                 last_ball_pos = BALL.transform.position;
                 break;
             case PLAY_STATE.in_the_hole:
-
+                if (!(power_up is FireProofPowerUp))
+                {
+                    using_fireproof = false;
+                }
                 break;
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        if (add_impulse == true)
+        {
+            float thrust = last_strength * THRUST_MULTIPLIER;
+            ball_rb.AddForce(ROTATOR.transform.right * thrust);
+            add_impulse = false;
         }
     }
 
     private void _next_turn()
     {
-        ROTATOR.SetActive(true);
+        Cmd_enable_golf_club();
         last_strength = 0;
         ROTATOR.transform.position = BALL.transform.position;
         last_valid_position = BALL.transform.position;
@@ -174,7 +210,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                ROTATOR.transform.Rotate(0, 1, 0);
+                ROTATOR.transform.Rotate(Vector3.up * ROTATE_STRENGTH * Time.deltaTime);
             }
         }
         else if (right_arrow_clicked)
@@ -185,7 +221,7 @@ public class PlayerScript : NetworkBehaviour
             }
             else
             {
-                ROTATOR.transform.Rotate(0, -1, 0);
+                ROTATOR.transform.Rotate(Vector3.down * ROTATE_STRENGTH * Time.deltaTime);
             }
         }
         if (!right_arrow_clicked && Input.GetKeyDown(KeyCode.LeftArrow))
@@ -209,8 +245,11 @@ public class PlayerScript : NetworkBehaviour
         }
         else if (Input.GetMouseButtonUp(0) && left_mouse_clicked)
         {
-            play_state = PLAY_STATE.hitting_ball;
-            timer = HIT_TIMER;
+            if (last_strength > STRENGTH_THRESHOLD)
+            {
+                play_state = PLAY_STATE.hitting_ball;
+                timer = HIT_TIMER;
+            }
             left_mouse_clicked = false;
             left_mouse_x = 0;
             left_mouse_y = 0;
@@ -218,12 +257,36 @@ public class PlayerScript : NetworkBehaviour
         else if (left_mouse_clicked)
         {
             float strength = Math.Min(Math.Abs(Input.mousePosition.y - left_mouse_y) / 15, MAX_STRENGTH);
-            POINTER.transform.localScale = new Vector3( strength * POINTER_LENGTH, 1, POINTER_LENGTH );
-            POINTER.transform.localPosition = new Vector3(POINTER.transform.localScale.x * 5, BALL.transform.localScale.y/-2.1f, 0 );
-            GOLF_CLUB.transform.Rotate( 0, strength - last_strength, 0 );
+            POINTER.transform.localScale = new Vector3(strength * POINTER_LENGTH, 1, POINTER_LENGTH);
+            POINTER.transform.localPosition = new Vector3(POINTER.transform.localScale.x * 5, BALL.transform.localScale.y / -2.1f, 0);
+            GOLF_CLUB.transform.Rotate(0, strength - last_strength, 0);
 
             last_strength = strength;
         }
+    }
+
+    [Command]
+    void Cmd_disable_golf_club()
+    {
+        Rpc_disable_golf_club();
+    }
+
+    [ClientRpc]
+    void Rpc_disable_golf_club()
+    {
+        ROTATOR.SetActive(false);
+    }
+
+    [Command]
+    void Cmd_enable_golf_club()
+    {
+        Rpc_enable_golf_club();
+    }
+
+    [ClientRpc]
+    void Rpc_enable_golf_club()
+    {
+        ROTATOR.SetActive(true);
     }
 
     private void _handle_right_click()
@@ -328,16 +391,54 @@ public class PlayerScript : NetworkBehaviour
         play_state = PLAY_STATE.in_the_hole;
     }
 
+    public void _handle_space_bar()
+    {
+        if (this.power_up != null)
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                Debug.Log("Using Powerup: " + power_up.name);
+                this.power_up.onUse(BALL);
+                if (this.power_up is FireProofPowerUp)
+                {
+                    using_fireproof = true;
+                }
+                this.power_up = null;
+
+                GameObject powerUpCanvas = GameObject.FindGameObjectWithTag("PowerUpCanvas");
+                powerUpCanvas.GetComponentInChildren<Text>().text = "Power Up: \nNULL";
+                Debug.Log(powerUpCanvas.GetComponentInChildren<Text>().text);
+            }
+        }
+    }
+
     public void pickedUpPowerUp(PowerUp power_up)
     {
-
+        this.power_up = power_up;
     }
-    public void resetOnDeath()
+    private void _resetOnDeath()
     {
         Debug.Log("reseting from death");
         ball_rb.velocity = Vector3.zero;
         CAMERA_OBJ.transform.position = CAMERA_OBJ.transform.position + last_valid_position - BALL.transform.position;
         BALL.transform.position = last_valid_position;
         _next_turn();
+        in_death_zone = false;
+        _next_turn();
+    }
+    public void enterDeathZone()
+    {
+        in_death_zone = true;
+        death_zone_timer = TIME_TILL_DEATH;
+    }
+    public void exitDeathZone()
+    {
+        in_death_zone = false;
+    }
+
+    // Sabin Kim: getter for bool using_fireproof
+    public bool isUsingFireProof()
+    {
+        return using_fireproof;
     }
 }
